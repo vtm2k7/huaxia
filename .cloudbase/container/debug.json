@@ -1,0 +1,43 @@
+{
+  "containers": [
+    {
+      "name": "huaxia",
+      "containerId": "565d2171b5c5b103e81cb92c40b382deea4d1702caaaeacfa90be14ad094d5f3",
+      "domain": "",
+      "ip": ""
+    }
+  ],
+  "config": {
+    "huaxia": {
+      "containerPort": 80,
+      "minNum": 0,
+      "maxNum": 5,
+      "cpu": 1,
+      "mem": 2,
+      "policyType": "cpu",
+      "policyThreshold": 60,
+      "policyDetails": [
+        {
+          "PolicyType": "cpu",
+          "PolicyThreshold": 60
+        },
+        {
+          "PolicyType": "mem",
+          "PolicyThreshold": 60
+        }
+      ],
+      "envParams": {
+        "MYSQL_USERNAME": "",
+        "MYSQL_PASSWORD": "",
+        "MYSQL_ADDRESS": ""
+      },
+      "customLogs": "/app/runtime/log/*",
+      "dataBaseName": "thinkphp_demo",
+      "executeSQLs": [
+        "CREATE DATABASE IF NOT EXISTS thinkphp_demo;",
+        "USE thinkphp_demo;",
+        "CREATE TABLE IF NOT EXISTS `Counters` (`id` int(11) NOT NULL AUTO_INCREMENT, `count` int(11) NOT NULL DEFAULT 1, `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP, `updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (`id`)) ENGINE = InnoDB DEFAULT CHARSET = utf8;"
+      ]
+    }
+  }
+}
