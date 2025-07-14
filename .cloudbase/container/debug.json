@@ -2,9 +2,10 @@
   "containers": [
     {
       "name": "huaxia",
-      "containerId": "565d2171b5c5b103e81cb92c40b382deea4d1702caaaeacfa90be14ad094d5f3",
       "domain": "",
-      "ip": ""
+      "ip": "",
+      "mode": "compose",
+      "containerId": "64553e6d33071f8d5772f28e4dba64203ad377e63430ddfdf6d68b5d46843f30"
     }
   ],
   "config": {
@@ -27,9 +28,9 @@
         }
       ],
       "envParams": {
-        "MYSQL_USERNAME": "",
-        "MYSQL_PASSWORD": "",
-        "MYSQL_ADDRESS": ""
+        "MYSQL_USERNAME": "root",
+        "MYSQL_PASSWORD": "root",
+        "MYSQL_ADDRESS": "127.0.0.1:3306"
       },
       "customLogs": "/app/runtime/log/*",
       "dataBaseName": "thinkphp_demo",

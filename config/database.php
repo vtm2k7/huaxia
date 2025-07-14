@@ -56,6 +56,18 @@ return [
             // 开启字段缓存
             'fields_cache' => false,
         ],
+        // 第二个数据库
+        'real_db' => [
+            'type'        => 'mysql',
+            'hostname'    => preg_split('/:/', getenv('MYSQL2_ADDRESS'))[0],
+            'hostport'    => preg_split('/:/', getenv('MYSQL2_ADDRESS'))[1],
+            'database'    => getenv('MYSQL2_DATABASE') ?: 'db2',
+            'username'    => getenv('MYSQL2_USERNAME'),
+            'password'    => getenv('MYSQL2_PASSWORD'),
+            'charset'     => 'utf8',
+            'prefix'      => '',
+            'params'      => [],
+        ],
 
         // 更多的数据库配置信息
     ],
