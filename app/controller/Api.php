@@ -6,10 +6,8 @@ namespace app\controller;
 use think\Request;
 use think\Response;
 
-class Api
-{
-    public function binder(Request $request): Response
-    {
+class Api {
+    public function binder(Request $request): Response {
         $targetUrl = 'http://huaxia.ad-wizard.cn/api2/binder';
 
         // 获取 header 里的 openid
@@ -33,8 +31,7 @@ class Api
      * @param array $body
      * @return Response
      */
-    private function proxyRequest(string $url, array $body = []): Response
-    {
+    private function proxyRequest(string $url, array $body = []): Response {
         $ch = curl_init();
 
         curl_setopt($ch, CURLOPT_URL, $url);
@@ -54,14 +51,13 @@ class Api
             curl_close($ch);
             return json([
                 'code' => 500,
-                'msg'  => '转发失败',
-                'error'=> $errorMsg
+                'msg' => '转发失败',
+                'error' => $errorMsg
             ]);
         }
 
         curl_close($ch);
 
-        return response($result, $httpCode)
-            ->contentType('application/json');
+        return response($result, $httpCode)->contentType('application/json');
     }
 }
