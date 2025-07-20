@@ -6,10 +6,19 @@ use think\Request;
 class Binding extends Base {
 
     /*
-     * 转发绑定请求
+     * 绑定
      */
     public function index(Request $request) {
         $targetUrl = 'http://huaxia.ad-wizard.cn/mini/binding';
         return $this->remoteRequest($targetUrl, $this->jsonBody);
     }
+
+    /*
+     * 解绑
+     */
+    public function release(Request $request) {
+        $targetUrl = 'http://huaxia.ad-wizard.cn/mini/unbinding';
+        return $this->remoteRequest($targetUrl, $this->jsonBody);
+    }
+
 }
