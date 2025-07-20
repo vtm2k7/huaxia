@@ -8,4 +8,5 @@ class User extends Base {
         $targetUrl = 'http://huaxia.ad-wizard.cn/mini/info';
         return $this->remoteRequest($targetUrl, $this->jsonBody);
     }
+
 }

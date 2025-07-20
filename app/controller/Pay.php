@@ -44,7 +44,7 @@ class Pay extends Base {
 
         // 2. 调用微信统一下单
         $param = [
-            'body' => $body["paytext"] ?? "测试微信支付",
+            'body' => $body["paytext"] ?? "微信支付",
             'openid' => $this->openid,
             'out_trade_no' => $outTradeNo,
             'spbill_create_ip' => $header['x-forwarded-for'] ?? '',
@@ -53,14 +53,13 @@ class Pay extends Base {
             'total_fee' => $fee,
             'callback_type' => 2,
             'container' => [
-                'service' => 'pay',
+                'service' => 'thinkphp-nginx-dq0y',
                 'path' => '/pay/notify'
             ]
         ];
 
         return $this->sendRequest('http://api.weixin.qq.com/_/pay/unifiedOrder', $param);
     }
-
 
     /*
      * 接受微信的回调
