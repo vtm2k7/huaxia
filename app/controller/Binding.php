@@ -3,17 +3,13 @@ namespace app\controller;
 
 use think\Request;
 
-class User extends Base {
-    public function info(Request $request) {
-        // 从请求 header 里拿 openid
-        $openid = $request->header('x-wx-openid');
+class Binding extends Base {
 
-        if (!$openid) {
-            return json(['error' => 'no openid'], 400);
-        }
-
-        return json([
-            'openid' => $openid
-        ]);
+    /*
+     * 转发绑定请求
+     */
+    public function index(Request $request) {
+        $targetUrl = 'http://huaxia.ad-wizard.cn/mini/binding';
+        return $this->remoteRequest($targetUrl, $this->jsonBody);
     }
 }

@@ -18,6 +18,7 @@ services:
       - MYSQL_USERNAME=root
       - MYSQL_PASSWORD=root
       - MYSQL_ADDRESS=127.0.0.1:3306
+      - IS_MOCK_PAY=true
 networks:
   default:
     external:

@@ -5,7 +5,7 @@ namespace app\model;
 
 use think\Model;
 
-class Order extends Model {
+class Appointment extends Model {
     // 指定表名（TP 默认类名小写绑定，可省略）
     protected $name = 'order';
 
