@@ -58,7 +58,7 @@ class Pay extends Base {
                 'path' => '/pay/notify'
             ]
         ];
-        Log::info('----unifiedOrder----' . $param);
+        Log::info('----unifiedOrder----' .  json_encode($param));
 
         return $this->sendRequest('http://api.weixin.qq.com/_/pay/unifiedOrder', $param);
     }
@@ -69,7 +69,7 @@ class Pay extends Base {
     public function notify() {
         $data = json_decode(file_get_contents('php://input'), true);
 
-        Log::info('----notify----' . $data);
+        Log::info('----notify----' . json_encode($data));
 
         // 必须是支付成功才处理
         if (($data['resultCode'] ?? '') !== 'SUCCESS') {
