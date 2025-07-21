@@ -76,7 +76,7 @@ class Pay extends Base {
             return response('fail', 400);
         }
 
-        $openid = $data['openid'];
+        $openid = $data['subOpenid'];
         $outTradeNo = $data['outTradeNo'] ?? '';
         $transactionId = $data['transactionId'] ?? '';
 
