@@ -1,14 +1,13 @@
 <?php
+
 namespace app\controller;
 
-use think\Request;
-
-class Binding extends Base {
+class User extends Base {
 
     /*
      * 绑定
      */
-    public function index(Request $request) {
+    public function binding() {
         $targetUrl = 'http://huaxia.ad-wizard.cn/mini/binding';
         return $this->remoteRequest($targetUrl, $this->jsonBody);
     }
@@ -16,7 +15,7 @@ class Binding extends Base {
     /*
      * 解绑
      */
-    public function release(Request $request) {
+    public function unbinding() {
         $targetUrl = 'http://huaxia.ad-wizard.cn/mini/unbinding';
         return $this->remoteRequest($targetUrl, $this->jsonBody);
     }

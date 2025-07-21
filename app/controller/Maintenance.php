@@ -2,21 +2,13 @@
 
 namespace app\controller;
 
-class User extends Base {
+class Maintenance extends Base {
 
     /*
-     * 绑定
+     * 历史交费记录
      */
-    public function binding() {
-        $targetUrl = 'http://huaxia.ad-wizard.cn/mini/binding';
-        return $this->remoteRequest($targetUrl, $this->jsonBody);
-    }
-
-    /*
-     * 解绑
-     */
-    public function unbinding() {
-        $targetUrl = 'http://huaxia.ad-wizard.cn/mini/unbinding';
+    public function history() {
+        $targetUrl = 'http://huaxia.ad-wizard.cn/mini/history';
         return $this->remoteRequest($targetUrl, $this->jsonBody);
     }
 
