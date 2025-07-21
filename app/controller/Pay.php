@@ -58,6 +58,7 @@ class Pay extends Base {
                 'path' => '/pay/notify'
             ]
         ];
+        Log::info('----unifiedOrder----' . $param);
 
         return $this->sendRequest('http://api.weixin.qq.com/_/pay/unifiedOrder', $param);
     }
