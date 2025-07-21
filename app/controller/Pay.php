@@ -69,6 +69,8 @@ class Pay extends Base {
     public function notify() {
         $data = json_decode(file_get_contents('php://input'), true);
 
+        Log::info('----notify----' . $data);
+
         // 必须是支付成功才处理
         if (($data['resultCode'] ?? '') !== 'SUCCESS') {
             return response('fail', 400);
