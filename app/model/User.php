@@ -19,7 +19,7 @@ class User extends Model
         'id'            => 'integer',
         'openid'        => 'string',
         'nick_name'       => 'string',
-        'avata_url'       => 'string',
+        'avatar_url'       => 'string',
         'create_time'   => 'integer',
         'update_time'   => 'integer',
         'del_flg'       => 'integer',
