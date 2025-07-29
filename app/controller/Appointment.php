@@ -29,6 +29,13 @@ class Appointment extends Base {
             'del_flg' => 0,
         ];
 
+        // 远程推送发邮件
+        $t = 'appointment';
+        $str = $this->openid.'_'.$t.'_.';
+        $key = md5($str);
+        $targetUrl = 'http://huaxia.ad-wizard.cn/mini/mail?t='.$t.'&key='.$key;
+        $this->remoteRequest($targetUrl, $insertData);
+
         // 插入数据库
         $rst['code'] = 200;
         try {
