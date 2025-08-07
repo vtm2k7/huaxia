@@ -11,6 +11,14 @@ class Pay extends Base {
     private $mchid = '1718031075'; // 子商户ID
 
     /*
+     * 用户信息查询验证
+     */
+    public function verify() {
+        $targetUrl = 'http://huaxia.ad-wizard.cn/mini/verify';
+        return $this->remoteRequest($targetUrl, $this->jsonBody);
+    }
+
+    /*
      * 统一下单程序
      */
     public function unifiedOrder() {

@@ -45,4 +45,28 @@ class Bury extends Base {
         }
         return json($rst);
     }
+
+    public function getUsedSlots() {
+        $data = $this->jsonBody;
+
+        if (empty($data['want_day'])) {
+            return json(['error' => '缺少参数 want_day'], 400);
+        }
+
+        $wantDay = $data['want_day'];
+
+        // 查出当天各时段已预约人数
+        $list = Db::name('bury')
+            ->field('want_time, count(*) as used')
+            ->where('want_day', $wantDay)
+            ->where('del_flg', 0)
+            ->group('want_time')
+            ->select()
+            ->toArray();
+
+        return json([
+            'code' => 200,
+            'data' => $list
+        ]);
+    }
 }
