@@ -13,14 +13,4 @@ class Check extends Base {
         $rst['data'] = $user;
         return json($rst);
     }
-
-    public function userInfo() {
-        $targetUrl = 'http://huaxia.ad-wizard.cn/mini/userInfo';
-        return $this->remoteRequest($targetUrl, $this->jsonBody);
-    }
-
-    public function maintenanceInfo() {
-        $targetUrl = 'http://huaxia.ad-wizard.cn/mini/maintenanceInfo';
-        return $this->remoteRequest($targetUrl, $this->jsonBody);
-    }
 }

@@ -28,7 +28,7 @@ class Pay extends Base {
 
         // 这里的 fee 是固定的 1 分，实际应用中可以根据业务逻辑调整
         // 例如：$fee = $body['fee'] ?? 1; 这样可以从请求体中获取费用
-        $fee = 1;
+        $fee = $body['fee'];
 
         $payid = $body["payid"] ?? uniqid();
         $outTradeNo = self::TRADE_PREFIX . $payid;
