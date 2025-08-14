@@ -23,37 +23,34 @@ class Pay extends Base {
      */
     public function unifiedOrder() {
 
-        $mock = env('IS_MOCK_PAY', false);
-
         $header = $this->headers;
         $body = $this->jsonBody;
 
+        // 这里的 fee 是固定的 1 分，实际应用中可以根据业务逻辑调整
+        // 例如：$fee = $body['fee'] ?? 1; 这样可以从请求体中获取费用
         $fee = 1;
+
         $payid = $body["payid"] ?? uniqid();
         $outTradeNo = self::TRADE_PREFIX . $payid;
+
+        $bindingNo = $body['binding_no'];
+        $tombId = $body['tomb_id'];
+        $tombPath = $body['tomb_path'];
 
         // 1. 插入订单
         Order::create([
             'openid' => $this->openid,
+            'binding_no' => $bindingNo,
+            'tomb_id' => $tombId,
+            'tomb_path' => $tombPath,
             'out_trade_no' => $outTradeNo,
             'total_fee' => $fee,
-            'product_name' => $body["paytext"] ?? '微信支付.',
             'create_time' => time(),
         ]);
 
-        // 模拟模式（跳过远程调用）
-        if ($mock == 'true') {
-            return json([
-                'mock' => true,
-                'message' => '模拟支付成功',
-                'out_trade_no' => $outTradeNo,
-                'prepay_id' => 'MOCK_PREPAY_' . uniqid()
-            ]);
-        }
-
         // 2. 调用微信统一下单
         $param = [
-            'body' => $body["paytext"] ?? "微信支付.",
+            'body' => "墓地维护费",
             'openid' => $this->openid,
             'out_trade_no' => $outTradeNo,
             'spbill_create_ip' => $header['x-forwarded-for'] ?? '',
@@ -66,9 +63,9 @@ class Pay extends Base {
                 'path' => '/pay/notify'
             ]
         ];
-        Log::info('----unifiedOrder----' .  json_encode($param));
+        Log::info('----unifiedOrder----' . json_encode($param));
 
-        return $this->sendRequest('http://api.weixin.qq.com/_/pay/unifiedOrder', $param);
+        //return $this->sendRequest('http://api.weixin.qq.com/_/pay/unifiedOrder', $param);
     }
 
     /*
@@ -76,64 +73,86 @@ class Pay extends Base {
     */
     public function notify() {
         $data = json_decode(file_get_contents('php://input'), true);
-
         Log::info('----notify----' . json_encode($data));
 
         // 必须是支付成功才处理
-        if (($data['resultCode'] ?? '') !== 'SUCCESS') {
+        if (($data['resultCode'] ?? '') !== 'SUCCESS')
             return response('fail', 400);
-        }
 
         $openid = $data['subOpenid'];
         $outTradeNo = $data['outTradeNo'] ?? '';
         $transactionId = $data['transactionId'] ?? '';
 
-        if (!$outTradeNo || !$transactionId) {
+        // 获取微信支付时间 - 正确解析 yyyyMMddHHmmss 格式
+        $timeEnd = $data['timeEnd'] ?? '';
+        $payTime = $timeEnd ? $this->parseWechatTime($timeEnd) : time();
+
+        if (!$outTradeNo || !$transactionId)
             return response('fail', 400); // 参数不完整
-        }
 
         $order = Order::where('out_trade_no', $outTradeNo)->find();
-        if (!$order) {
+        if (!$order)
             return response('fail', 404); // 订单不存在
+
+        // 防止重复处理
+        if ($order->pay_status == 1) {
+            Log::info('----notify---- 订单已处理过，跳过：' . $outTradeNo);
+            return response('success');
         }
 
-        // 已处理过
-       /* if ($order->pay_status == 1) {
-            return response('success.1'); // ✅ 告诉微信“我已经处理好了，不用再来了”
-        }*/
-
-        // 开始处理
         try {
-            // 更新远程维护记录
-            $targetUrl = 'http://huaxia.ad-wizard.cn/mini/updateFee';
-            // 我的remoteRequest会强奸一个openid，所以这里回调要换个名字
-            $remote = $this->remoteRequest($targetUrl, [
-                'openid2' => $openid,
-                'transaction_id' => $transactionId
+            // 更新订单状态，使用微信回调的支付时间
+            $order->save([
+                'pay_status' => 1,
+                'transaction_id' => $transactionId,
+                'pay_time' => $payTime,
+                'wechat_pay_time' => $timeEnd, // 保存原始的微信时间字符串
+                'update_time' => time(),
             ]);
-            $remoteStr = $remote->getContent();
-            $remoteRst = json_decode($remoteStr, true);
-            if ($remoteRst['code'] == 200) {
-                $order->save([
-                    'pay_status' => 1,
-                    'transaction_id' => $transactionId,
-                    'pay_time' => time(),
-                    'update_time' => time(),
-                ]);
-                // ✅ 成功处理
-                return response('success.2');
-            } else if ($remoteRst['code'] == 304) {
-                // 已经更新过了，也算成功
-                return response('success.3');
-            } else {
-                // ❌ 数据库保存失败，让微信重试
-                Log::error("交费记录远端更新失败：" . $remoteRst['msg']);
-                echo "交费记录远端更新失败：" . $remoteRst['msg'];
-                return response('fail.2', 500); //
-            }
+
+            Log::info('----notify---- 订单状态已更新：' . $outTradeNo . '，支付时间：' . $timeEnd);
+            return response('success');
+
         } catch (\Throwable $e) {
-            Log::error("支付回调保存失败：" . $e->getMessage());
-            return response('fail.1', 500); // ❌ 数据库保存失败，让微信重试
+            Log::error('----notify---- 支付回调处理失败：' . $e->getMessage());
+            return response('fail', 500);
+        }
+    }
+
+    /**
+     * 解析微信时间格式 yyyyMMddHHmmss 为时间戳
+     */
+    private function parseWechatTime($timeEnd) {
+        if (strlen($timeEnd) !== 14) {
+            Log::error('----notify---- 微信时间格式错误：' . $timeEnd);
+            return time();
+        }
+
+        try {
+            // 解析 yyyyMMddHHmmss 格式
+            $year = substr($timeEnd, 0, 4);
+            $month = substr($timeEnd, 4, 2);
+            $day = substr($timeEnd, 6, 2);
+            $hour = substr($timeEnd, 8, 2);
+            $minute = substr($timeEnd, 10, 2);
+            $second = substr($timeEnd, 12, 2);
+
+            $timestamp = mktime(
+                (int)$hour,
+                (int)$minute, 
+                (int)$second,
+                (int)$month,
+                (int)$day,
+                (int)$year
+            );
+
+            Log::info("----notify---- 微信支付时间解析：{$timeEnd} -> {$timestamp} (" . date('Y-m-d H:i:s', $timestamp) . ")");
+            
+            return $timestamp;
+
+        } catch (\Throwable $e) {
+            Log::error('----notify---- 微信时间解析失败：' . $e->getMessage());
+            return time();
         }
     }
 
