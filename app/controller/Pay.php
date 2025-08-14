@@ -65,7 +65,7 @@ class Pay extends Base {
         ];
         Log::info('----unifiedOrder----' . json_encode($param));
 
-        //return $this->sendRequest('http://api.weixin.qq.com/_/pay/unifiedOrder', $param);
+        return $this->sendRequest('http://api.weixin.qq.com/_/pay/unifiedOrder', $param);
     }
 
     /*
@@ -116,43 +116,6 @@ class Pay extends Base {
         } catch (\Throwable $e) {
             Log::error('----notify---- 支付回调处理失败：' . $e->getMessage());
             return response('fail', 500);
-        }
-    }
-
-    /**
-     * 解析微信时间格式 yyyyMMddHHmmss 为时间戳
-     */
-    private function parseWechatTime($timeEnd) {
-        if (strlen($timeEnd) !== 14) {
-            Log::error('----notify---- 微信时间格式错误：' . $timeEnd);
-            return time();
-        }
-
-        try {
-            // 解析 yyyyMMddHHmmss 格式
-            $year = substr($timeEnd, 0, 4);
-            $month = substr($timeEnd, 4, 2);
-            $day = substr($timeEnd, 6, 2);
-            $hour = substr($timeEnd, 8, 2);
-            $minute = substr($timeEnd, 10, 2);
-            $second = substr($timeEnd, 12, 2);
-
-            $timestamp = mktime(
-                (int)$hour,
-                (int)$minute, 
-                (int)$second,
-                (int)$month,
-                (int)$day,
-                (int)$year
-            );
-
-            Log::info("----notify---- 微信支付时间解析：{$timeEnd} -> {$timestamp} (" . date('Y-m-d H:i:s', $timestamp) . ")");
-            
-            return $timestamp;
-
-        } catch (\Throwable $e) {
-            Log::error('----notify---- 微信时间解析失败：' . $e->getMessage());
-            return time();
         }
     }
 
@@ -233,6 +196,43 @@ class Pay extends Base {
             'errcode' => 0,
             'errmsg' => 'ok'
         ]);
+    }
+
+    /**
+     * 解析微信时间格式 yyyyMMddHHmmss 为时间戳
+     */
+    private function parseWechatTime($timeEnd) {
+        if (strlen($timeEnd) !== 14) {
+            Log::error('----notify---- 微信时间格式错误：' . $timeEnd);
+            return time();
+        }
+
+        try {
+            // 解析 yyyyMMddHHmmss 格式
+            $year = substr($timeEnd, 0, 4);
+            $month = substr($timeEnd, 4, 2);
+            $day = substr($timeEnd, 6, 2);
+            $hour = substr($timeEnd, 8, 2);
+            $minute = substr($timeEnd, 10, 2);
+            $second = substr($timeEnd, 12, 2);
+
+            $timestamp = mktime(
+                (int)$hour,
+                (int)$minute, 
+                (int)$second,
+                (int)$month,
+                (int)$day,
+                (int)$year
+            );
+
+            Log::info("----notify---- 微信支付时间解析：{$timeEnd} -> {$timestamp} (" . date('Y-m-d H:i:s', $timestamp) . ")");
+            
+            return $timestamp;
+
+        } catch (\Throwable $e) {
+            Log::error('----notify---- 微信时间解析失败：' . $e->getMessage());
+            return time();
+        }
     }
 
     /*
