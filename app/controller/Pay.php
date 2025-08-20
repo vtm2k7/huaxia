@@ -155,11 +155,11 @@ class Pay extends Base {
     public function refund() {
         $body = $this->jsonBody;
 
-        // 必须参数验证
-        if (empty($body['out_trade_no']) || empty($body['refund_fee'])) {
+        // 只需要订单号即可
+        if (empty($body['out_trade_no'])) {
             return json([
                 'success' => false,
-                'message' => '缺少必要参数'
+                'message' => '缺少订单号'
             ], 400);
         }
 
@@ -172,27 +172,34 @@ class Pay extends Base {
             ], 404);
         }
 
+        // 检查订单状态
+        if ($order->pay_status != 1) {
+            return json([
+                'success' => false,
+                'message' => '订单未支付'
+            ], 400);
+        }
+
         // 生成退款单号
         $outRefundNo = 'RF' . self::TRADE_PREFIX . uniqid();
 
+        // 构建退款参数 - 云托管免token调用
         $param = [
             'out_trade_no' => $order->out_trade_no,    // 原订单号
             'out_refund_no' => $outRefundNo,           // 退款单号
             'sub_mch_id' => $this->mchid,              // 子商户号
             'total_fee' => $order->total_fee,          // 原订单金额
-            'refund_fee' => $body['refund_fee'],       // 退款金额
-            'refund_desc' => $body['refund_desc'] ?? '申请退款', // 退款原因
-            'env_id' => $this->headers['x-wx-env'] ?? '',
-            'callback_type' => 2,
+            'refund_fee' => $order->total_fee,         // 退款金额（全额退款）
+            'callback_type' => 2,                      // 云托管回调
             'container' => [
                 'service' => 'thinkphp-nginx-dq0y',
-                'path' => '/pay/refundNotify'          // 退款回调地址
+                'path' => '/pay/refundNotify'
             ]
         ];
 
-        Log::info('----refund---- 发起退款：' . json_encode([
+        Log::info('----refund---- 发起全额退款：' . json_encode([
                 'out_trade_no' => $order->out_trade_no,
-                'refund_fee' => $body['refund_fee']
+                'total_fee' => $order->total_fee
             ]));
 
         return $this->sendRequest('http://api.weixin.qq.com/_/pay/refund', $param);
@@ -205,38 +212,40 @@ class Pay extends Base {
         $data = json_decode(file_get_contents('php://input'), true);
         Log::info('----refund-notify----' . json_encode($data));
 
-        // 必须是退款成功才处理
-        if (($data['refundStatus'] ?? '') !== 'SUCCESS') {
-            Log::error('----refund-notify---- 退款未成功：' . ($data['refundStatus'] ?? 'UNKNOWN'));
-            return response('fail', 400);
+        // 微信云托管的退款回调格式验证
+        if (($data['returnCode'] ?? '') !== 'SUCCESS' || ($data['resultCode'] ?? '') !== 'SUCCESS') {
+            Log::error('----refund-notify---- 退款未成功：' . json_encode([
+                    'returnCode' => $data['returnCode'] ?? '',
+                    'resultCode' => $data['resultCode'] ?? ''
+                ]));
+            return response('fail');
         }
 
         $outTradeNo = $data['outTradeNo'] ?? '';
         $outRefundNo = $data['outRefundNo'] ?? '';
         $refundFee = $data['refundFee'] ?? 0;
-        $refundTime = $data['successTime'] ?? '';  // 退款成功时间，格式：yyyyMMddHHmmss
+        $successTime = $data['successTime'] ?? date('YmdHis');
 
         if (!$outTradeNo || !$outRefundNo) {
             Log::error('----refund-notify---- 参数不完整');
-            return response('fail', 400);
+            return response('fail');
         }
 
         // 查询原订单
         $order = Order::where('out_trade_no', $outTradeNo)->find();
         if (!$order) {
             Log::error('----refund-notify---- 订单不存在：' . $outTradeNo);
-            return response('fail', 404);
+            return response('fail');
         }
 
         try {
-            // 开启事务
             Db::startTrans();
 
             // 1. 更新订单退款状态
             $order->save([
-                'refund_status' => 1,                // 已退款
-                'refund_time' => $refundTime ? $this->parseWechatTime($refundTime) : time(),
-                'refund_fee' => $refundFee,         // 实际退款金额
+                'refund_status' => 1,
+                'refund_time' => $this->parseWechatTime($successTime),
+                'refund_fee' => $refundFee,
                 'update_time' => time()
             ]);
 
@@ -247,16 +256,15 @@ class Pay extends Base {
                 'out_refund_no' => $outRefundNo,
                 'total_fee' => $order->total_fee,
                 'refund_fee' => $refundFee,
-                'refund_status' => 1,               // 退款成功
-                'refund_time' => $refundTime ? $this->parseWechatTime($refundTime) : time(),
+                'refund_status' => 1,
+                'refund_time' => $this->parseWechatTime($successTime),
                 'create_time' => time(),
                 'update_time' => time()
             ]);
 
-            // 提交事务
             Db::commit();
 
-            Log::info('----refund-notify---- 退款成功：' . json_encode([
+            Log::info('----refund-notify---- 退款处理成功：' . json_encode([
                     'out_trade_no' => $outTradeNo,
                     'out_refund_no' => $outRefundNo,
                     'refund_fee' => $refundFee
@@ -265,25 +273,13 @@ class Pay extends Base {
             return response('success');
 
         } catch (\Throwable $e) {
-            // 回滚事务
-            \think\facade\Db::rollback();
-
+            Db::rollback();
             Log::error('----refund-notify---- 退款处理失败：' . $e->getMessage());
-            return response('fail', 500);
+            return response('fail');
         }
     }
 
-    public function queryRefund() {
-        $body = Request::post();
-
-        $param = [
-            'out_trade_no' => '2021WERUN' . ($body["payid"] ?? ''),
-            'sub_mch_id' => $this->mchid
-        ];
-
-        return $this->sendRequest('http://api.weixin.qq.com/_/pay/queryrefund', $param);
-    }
-
+   
     // 可选：统一的处理器入口（仅判断 payid 是否存在）
     public function index() {
         $body = Request::post();
