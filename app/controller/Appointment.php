@@ -6,6 +6,7 @@ use think\Request;
 use think\facade\Db;
 
 class Appointment extends Base {
+    
     public function index() {
 
         $data = $this->jsonBody;
